@@ -440,19 +440,20 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/SQL script 4')]",
+			"name": "[concat(parameters('workspaceName'), '/calender_csv')]",
 			"type": "Microsoft.Synapse/workspaces/sqlscripts",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"content": {
-					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/calendar.csv',\n        FORMAT = 'CSV',\r\n        PARSER_VERSION = '2.0'\n    ) AS [result]\r\n",
+					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/calendar.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n",
 					"metadata": {
 						"language": "sql"
 					},
 					"currentConnection": {
-						"name": "master",
-						"type": "SqlOnDemand"
-					}
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
 				},
 				"type": "SqlQuery"
 			},
