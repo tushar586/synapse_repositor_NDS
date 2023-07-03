@@ -1,0 +1,20 @@
+{
+	"name": "delta_files",
+	"properties": {
+		"folder": {
+			"name": "select_queries"
+		},
+		"content": {
+			"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_delta/year=2020/month=*/',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n\n\nSELECT table_name FROM information_schema.tables WHERE table_schema = 'dbo';\n\n\nSELECT name FROM sys.tables\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "tushar_db",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
