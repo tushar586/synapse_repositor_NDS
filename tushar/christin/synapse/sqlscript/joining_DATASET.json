@@ -1,0 +1,20 @@
+{
+	"name": "joining_DATASET",
+	"properties": {
+		"folder": {
+			"name": "select_queries"
+		},
+		"content": {
+			"query": "-- loading one monthe parquet data \nSELECT\n    *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=2020/month=01/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n    WHERE PULocationID is null\n\n\n\n\n-- joining two different dataset - join by openrowset() only \nSELECT\n    *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=2020/month=01/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS result_1\n    join \n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/taxi_zone.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0',\n        HEADER_ROW = True,\n        FIELDTERMINATOR = ',',\n        rowterminator = '\\n') as result_2\n        on result_1.PULocationID = result_2.location_id",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
