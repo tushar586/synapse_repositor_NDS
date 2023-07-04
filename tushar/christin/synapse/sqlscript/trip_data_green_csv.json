@@ -1,0 +1,20 @@
+{
+	"name": "trip_data_green_csv",
+	"properties": {
+		"folder": {
+			"name": "select_queries"
+		},
+		"content": {
+			"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/**',\n        FORMAT = 'CSV',\n        HEADER_ROW = TRUE,\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n\n\n\n--  GET DATA FROM PARTICULAR FOLDERS AMONG ALL FOLDERS\n\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK ('https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/year=2020/month=01/*.csv',\n        'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/year=2020/month=01/*.csv'),\n        FORMAT = 'CSV',\n        HEADER_ROW = TRUE,\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n\n\n-- FILE META DATA FUNCTIONS\n\n-- This is auto-generated code\nSELECT \n    FOLDER_OUTPUT.FILENAME() AS FILE_NAME,\n    FOLDER_OUTPUT.*\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/**',\n        FORMAT = 'CSV',\n        HEADER_ROW = TRUE,\n        PARSER_VERSION = '2.0'\n    ) AS FOLDER_OUTPUT\n\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

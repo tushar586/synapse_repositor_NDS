@@ -1,0 +1,21 @@
+{
+	"name": "DUPLICATE_CHECK",
+	"properties": {
+		"description": "CHECKING DUPLICATE OF TAXI ZONE CSV",
+		"folder": {
+			"name": "select_queries"
+		},
+		"content": {
+			"query": "--tO CHECK DUPLICATE DATA\nSELECT\n    borough,\n    count(1) as countnum\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/taxi_zone.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0',\n        HEADER_ROW = True,\n        FIELDTERMINATOR = ',',\n        rowterminator = '\\n'\n    )WITH(\n        location_id smallint 1, \n        borough varchar(50) 2,\n        zone varchar(50) 3,\n        service_zone varchar(15) 4\n    ) AS [result]\n    group by borough\n    HAVING COUNT(1) > 1;\n\n\n-- This is auto-generated code\nSELECT\n    *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=*/month=*/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n    where total_amount < 0 \n\n\n-- This is auto-generated code\nSELECT\n    MIN(total_amount) as min_total_amount,\n    max(total_amount) as max_total_amount,\n    avg(total_amount) as avg_total_amount,\n    count(total_amount) as avg_total_amount,\n    count(1) as total_row\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=2020/month=01/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n\n\n\n\n-- joining two different dataset - join by openrowset() only \nSELECT\n    result_1.*,result_2.*\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=2020/month=01/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS result_1\n    join \n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/taxi_zone.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0',\n        HEADER_ROW = TRUE\n        )\n        with(\n            location_id smallint 1, \n            borough varchar(50) 2,\n            zone varchar(50) 3,\n            service_zone varchar(15) 4\n        )as result_2\n        on result_1.PULocationID = result_2.location_id\n   \n\n\n-- Coloumn level transformation   \n\nSELECT\n    datediff(minute,lpep_pickup_datetime,lpep_dropoff_datetime)/60 as from_hour,\n    datediff(minute,lpep_pickup_datetime,lpep_dropoff_datetime)/60 +1 as to_hour,\n    count(1) as number_of_trips\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=*/month=*/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS result_1\n    group by (datediff(minute,lpep_pickup_datetime,lpep_dropoff_datetime)),(datediff(minute,lpep_pickup_datetime,lpep_dropoff_datetime) +1)\n    order by from_hour, to_hour",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

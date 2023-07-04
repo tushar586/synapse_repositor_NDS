@@ -1,0 +1,20 @@
+{
+	"name": "file_metadata_function",
+	"properties": {
+		"folder": {
+			"name": "select_queries"
+		},
+		"content": {
+			"query": "--  GET DATA FROM PARTICULAR FOLDERS AMONG ALL FOLDERS\nSELECT\n    -- TOP 100 *,\n    result.filename() as file_name,\n    result.filepath() as file_path,\n    result.filepath(1) as file_path_year,\n    result.filepath(2) as file_path_month\n    -- count(1) as count_name \n\nFROM\n    OPENROWSET(\n        BULK ('https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/year=*/month=*/*.csv'),\n        FORMAT = 'CSV',\n        HEADER_ROW = TRUE,\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n    where result.filepath(1)  =  ('2020') \n    and result.filepath(2) in  ('06','07','08') \n    -- result.filename() = ('green_tripdata_2020-01' , 'green_tripdata_2020-02')\n    -- group by result.filename() , result.filepath() ,result.filepath(1) ,result.filepath(2) \n    order by result.filename() \n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

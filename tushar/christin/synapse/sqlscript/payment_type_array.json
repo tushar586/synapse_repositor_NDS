@@ -1,0 +1,20 @@
+{
+	"name": "payment_type_array",
+	"properties": {
+		"folder": {
+			"name": "select_queries"
+		},
+		"content": {
+			"query": "-- {\"payment_type\":1,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Credit card\"}]}\n-- {\"payment_type\":2,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Cash\"}]}\n-- {\"payment_type\":3,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"No charge\"}]}\n-- {\"payment_type\":4,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Dispute\"}]}\n-- {\"payment_type\":5,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Unknown\"}, {\"sub_type\":2, \"value\":\"Unavailable\"}]}\n-- {\"payment_type\":6,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Voided trip\"}]}\n\nSelect cast(json_value(jsonDoc, '$.payment_type') as SMALLINT) payment_type,\n    cast(json_value(jsonDoc, '$.payment_type_desc[0].sub_type')as varchar(50)) sub_type,\n    cast(json_value(jsonDoc, '$.payment_type_desc[0].value')as varchar(50)) value,\n    cast(json_value(jsonDoc, '$.payment_type_desc[1].value')as varchar(50)) value_1\n\n    from openrowset(\n        bulk 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type_array.json',\n        format = 'csv',\n        PARSER_VERSION = '1.0',\n        FIELDTERMINATOR = '0x0b',\n        FIELDQUOTE = '0x0b',\n        ROWTERMINATOR = '0x0a'\n\n    )\n    with \n    (\n        jsonDoc nvarchar(max) \n    )as payment_type\n\n\n\n\n\n\n\n\n\n\nselect * \nfrom OPENROWSET (\n    bulk  'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type_array.json',\n    format = 'csv',\n    PARSER_VERSION = '1.0',\n    FIELD_TERMINATOR = '0x0b',\n    FIELDQUOTE = '0x0b',\n    ROWTERMINATOR  = '0x0a'\n)\nwith\n(\n    jsonDoc nvarchar(MAX)\n)as payment_jso\ncross apply OPENJSON(jsonDoc)\nwith\n(\n    payment_type SMALLINT,\n    payment_type_desc nvarchar(max) as json \n);\n\n\n\nSELECT *\nFROM OPENROWSET (\n    BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type_array.json',\n    FORMAT = 'CSV',\n    PARSER_VERSION = '1.0',\n    FIELDTERMINATOR = '0x0b',\n    FIELDQUOTE = '0x0b',\n    ROWTERMINATOR = '0x0a'\n)\nWITH (\n    JsonDoc NVARCHAR(MAX)\n) AS Payment_Jso\nCROSS APPLY OPENJSON(JsonDoc)\nWITH (\n    payment_type SMALLINT,\n    payment_type_desc nvarchar(max) as json \n)cross apply openjson(payment_type_desc)\nwith\n(\n    sub_type smallint,\n    value varchar(50) '$.value'\n);\n\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

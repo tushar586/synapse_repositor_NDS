@@ -1,0 +1,20 @@
+{
+	"name": "manual_payment_types",
+	"properties": {
+		"folder": {
+			"name": "select_queries"
+		},
+		"content": {
+			"query": "-- {\"payment_type\":1,\"payment_type_desc\":\"Credit card\"} \nexec sp_describe_first_result_set N'\nSelect cast(json_value(jsonDoc, ''$.payment_type'') as SMALLINT) payment_type,\n    cast(json_value(jsonDoc, ''$.payment_type_desc'')as varchar(50)) payment_type_desc\n\n    from openrowset(\n        bulk ''https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type.json'',\n        format = ''csv'',\n        PARSER_VERSION = ''1.0'',\n        FIELDTERMINATOR = ''0x0b'',\n        FIELDQUOTE = ''0x0b'',\n        ROWTERMINATOR = ''0x0a''\n\n    )\n    with \n    (\n        jsonDoc nvarchar(max) \n    )as payment_type'\n\n\n    -- {\"payment_type\":1,\"payment_type_desc\":\"Credit card\"} \n\nSelect *\n    from openrowset(\n        bulk 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type.json',\n        format = 'csv',\n        PARSER_VERSION = '1.0',\n        FIELDTERMINATOR = '0x0b',\n        FIELDQUOTE = '0x0b',\n        ROWTERMINATOR = '0x0a'\n\n    )\n    with \n    (\n        jsonDoc nvarchar(max) \n    )as payment_type\n    cross apply openjson(jsonDoc)\n    with (\n        payment_type SMALLINT,\n        payment_type_desc varchar(50)\n    );\n\n\nSelect *\n    from openrowset(\n        bulk 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type.json',\n        format = 'csv',\n        PARSER_VERSION = '1.0',\n        FIELDTERMINATOR = '0x0b',\n        FIELDQUOTE = '0x0b',\n        ROWTERMINATOR = '0x0a'\n\n    )\n    with \n    (\n        jsonDoc nvarchar(max) \n    )as payment_type\n    cross apply openjson(jsonDoc)\n    with (\n        payment_type SMALLINT,\n        describe varchar(50) '$.payment_type_desc'\n    );\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
