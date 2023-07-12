@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 4",
+	"properties": {
+		"content": {
+			"query": "CREATE PROCEDURE GetEmployeeCount\nAS\nBEGIN\n    SELECT COUNT(*) AS TotalEmployees FROM taxi_zone;\nEND;\n\n-- to get the list of tables present in database.\nSELECT name\nFROM sys.tables\n\n\n--  to check views in synapse sql \nSELECT name\nFROM sys.views;\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "tushar_db",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
