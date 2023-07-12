@@ -1,5 +1,5 @@
 {
-	"name": "SQL script 4",
+	"name": "stored_procedure",
 	"properties": {
 		"content": {
 			"query": "CREATE PROCEDURE GetEmployeeCount\nAS\nBEGIN\n    SELECT COUNT(*) AS TotalEmployees FROM taxi_zone;\nEND;\n\n-- to get the list of tables present in database.\nSELECT name\nFROM sys.tables\n\n\n--  to check views in synapse sql \nSELECT name\nFROM sys.views;\n",
