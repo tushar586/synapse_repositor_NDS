@@ -6,10 +6,532 @@
 			"type": "string",
 			"metadata": "Workspace name",
 			"defaultValue": "synapset"
+		},
+		"ADLS_linked_service_by_a_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ADLS_linked_service_by_a'"
+		},
+		"synapset-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'synapset-WorkspaceDefaultSqlServer'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:synapset.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"ADLS_linked_service_by_a_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://storagesynapset.dfs.core.windows.net/"
+		},
+		"synapset-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://storagesynapset.dfs.core.windows.net"
 		}
 	},
 	"variables": {
 		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
 	},
-	"resources": []
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/ADLS_linked_service_by_a')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ADLS_linked_service_by_a_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ADLS_linked_service_by_a_accountKey')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/synapset-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('synapset-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/synapset-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('synapset-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DUPLICATE_CHECK')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"description": "CHECKING DUPLICATE OF TAXI ZONE CSV",
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "--tO CHECK DUPLICATE DATA\nSELECT\n    borough,\n    count(1) as countnum\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/taxi_zone.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0',\n        HEADER_ROW = True,\n        FIELDTERMINATOR = ',',\n        rowterminator = '\\n'\n    )WITH(\n        location_id smallint 1, \n        borough varchar(50) 2,\n        zone varchar(50) 3,\n        service_zone varchar(15) 4\n    ) AS [result]\n    group by borough\n    HAVING COUNT(1) > 1;\n\n\n-- This is auto-generated code\nSELECT\n    *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=*/month=*/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n    where total_amount < 0 \n\n\n-- This is auto-generated code\nSELECT\n    MIN(total_amount) as min_total_amount,\n    max(total_amount) as max_total_amount,\n    avg(total_amount) as avg_total_amount,\n    count(total_amount) as avg_total_amount,\n    count(1) as total_row\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=2020/month=01/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n\n\n\n\n-- joining two different dataset - join by openrowset() only \nSELECT\n    result_1.*,result_2.*\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=2020/month=01/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS result_1\n    join \n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/taxi_zone.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0',\n        HEADER_ROW = TRUE\n        )\n        with(\n            location_id smallint 1, \n            borough varchar(50) 2,\n            zone varchar(50) 3,\n            service_zone varchar(15) 4\n        )as result_2\n        on result_1.PULocationID = result_2.location_id\n   \n\n\n-- Coloumn level transformation   \n\nSELECT\n    datediff(minute,lpep_pickup_datetime,lpep_dropoff_datetime)/60 as from_hour,\n    datediff(minute,lpep_pickup_datetime,lpep_dropoff_datetime)/60 +1 as to_hour,\n    count(1) as number_of_trips\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=*/month=*/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS result_1\n    group by (datediff(minute,lpep_pickup_datetime,lpep_dropoff_datetime)),(datediff(minute,lpep_pickup_datetime,lpep_dropoff_datetime) +1)\n    order by from_hour, to_hour",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/External_table_sources')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "logic_data_warehouse"
+				},
+				"content": {
+					"query": "use master \ngo \n\ncreate database tushar_db\ngo \n\nalter database tushar_db collate Latin1_General_100_BIN2_UTF8\nGo\n\nuse tushar_db\nGO\n\n\n-- creating schema for external tables\nCreate schema bronze\nGO\n\ncreate schema silver\ngo \n\ncreate schema gold\ngo \n\n\n--note - to create external data source you are using https url but you can also use abfss here also \nCREATE EXTERNAL DATA SOURCE nyc_taxi_src\nWITH ( LOCATION = 'https://storagesynapset.dfs.core.windows.net/containersynapset');\n\n\nuse tushar_db\n\n\n--To check if the file format is created in the system or not.\nif not exist (select * from sys.external_file_formats where name = 'csv_file_format')\n    -- Create an external file format for DELIMITED (CSV/TSV) files.\n    --Note the below file format will only create if the csv format in csv_file_format is exist or not \n    CREATE EXTERNAL FILE FORMAT csv_file_format\n    WITH (\n            FORMAT_TYPE = DELIMITEDTEXT,\n            FORMAT_OPTIONS (\n                FIELD_TERMINATOR = ',',\n                STRING_DELIMITER = '\"',\n                FIRST_ROW = 2 ,\n                USE_TYPE_DEFAULT = FALSE,\n                ENCODING = 'UTF8',\n                PARSER_VERSION = '2.0')\n                );\n\n\n--Creating external table in synapse \n\nCREATE EXTERNAL TABLE tushar_db.bronze.taxi_zone\n(\n    location_id smallint , \n    borough varchar(50) ,\n    zone varchar(50) ,\n    service_zone varchar(15) \n)  \nWITH (\n    LOCATION = 'raw/taxi_zone.csv',\n    DATA_SOURCE = nyc_taxi_src,  \n    FILE_FORMAT = csv_file_format\n);\nGO\n\n\nselect * from tushar_db.bronze.taxi_zone\n\n\n-- Create an external file format for DELIMITED (CSV/TSV) files.\nCREATE EXTERNAL FILE FORMAT csv_file_format_pv_1\nWITH (\n        FORMAT_TYPE = DELIMITEDTEXT,\n        FORMAT_OPTIONS (\n            FIELD_TERMINATOR = ',',\n            STRING_DELIMITER = '\"',\n            FIRST_ROW = 2 ,\n            USE_TYPE_DEFAULT = FALSE,\n            ENCODING = 'UTF8',\n            PARSER_VERSION = '1.0')\n            );\n\n-- handling error in azure synapse or handling rejaction.\nselect * from sys.external_tables \nselect * from sys.external_data_sources\nselect * from sys.external_file_formats\n\n\n\n-- Note when you drop a table the internal file data will not be removed\n\nif object_id('tushar_db.bronze.taxi_zone') is not NULL\n    drop EXTERNAL TABLE tushar_db.bronze.taxi_zone_with_rejections_done\n \n\n\nCREATE EXTERNAL TABLE tushar_db.bronze.taxi_zone_with_rejections_done\n(\n    location_id smallint , \n    borough varchar(1) ,\n    zone varchar(1) ,\n    service_zone varchar(1) \n)  \nWITH (\n    LOCATION = 'raw/taxi_zone.csv',\n    DATA_SOURCE = nyc_taxi_src,  \n    FILE_FORMAT = csv_file_format_pv_1,\n    reject_value = 10,\n    rejected_row_location = 'Rejected/taxi_zone_rejected'\n);\nGO\n\n-- The rejected location is created by within the folders but the row which will kept will only 10\n\nSelect count(*) from tushar_db.bronze.taxi_zone_with_rejection\n\nSelect count(*) from tushar_db.bronze.taxi_zone\n\nSelect count(*) from tushar_db.bronze.taxi_zone_with_rejections_done\n\nSelect * from tushar_db.bronze.taxi_zone_with_rejections_done\n\n\n--creating external file_format - parquet format\n\nCREATE EXTERNAL FILE FORMAT parquet_file_format\nWITH\n(  \n    FORMAT_TYPE = PARQUET,\n    DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec'\n);\n\n\n\n\n--Create an external file format for PARQUET files.\nCREATE EXTERNAL FILE FORMAT file_format_name\nWITH (\n         FORMAT_TYPE = PARQUET\n    , DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec' \n    );\n\n\n-- creating external table from parquet format \n\nCREATE EXTERNAL TABLE tushar_db.bronze.parquet_file  \n(\n    location_id smallint , \n    borough varchar(1) ,\n    zone varchar(1) ,\n    service_zone varchar(1) \n)  \nWITH (\n    LOCATION = 'raw/taxi_zone.csv',\n    DATA_SOURCE = nyc_taxi_src,  \n    FILE_FORMAT = csv_file_format_pv_1,\n    reject_value = 10,\n    rejected_row_location = 'Rejected/taxi_zone_rejected'\n);\nGO\n\n\n-- Crateing external table on parquet file \n\n\nCREATE EXTERNAL TABLE bronze.parcquet_file_check_1\n    (\n\nVendorID int,\nlpep_pickup_datetime datetime2(7),\nlpep_dropoff_datetime datetime2(7),\nstore_and_fwd_flag varchar(8000),\nRatecodeID int,\nPULocationID int,\nDOLocationID int,\npassenger_count int,\ntrip_distance float,\nfare_amount float,\nextra float,\nmta_tax float,\ntip_amount float,\ntolls_amount float,\nehail_fee int,\nimprovement_surcharge float,\ntotal_amount float,\npayment_type int,\ntrip_type int,\ncongestion_surcharge float)  \nWITH (\n    LOCATION = 'raw/trip_data_green_parquet',\n    DATA_SOURCE = nyc_taxi_src,\n    FILE_FORMAT = file_format_name\n\n);\nGO\nselect * from tushar_db.bronze.parcquet_file_check\ndrop EXTERNAL TABLE tushar_db.bronze.parcquet_file_check\n\n\n\n\n--creating external file_format - parquet format\n\nCREATE EXTERNAL FILE FORMAT delta_file_format\nWITH\n(  \n    FORMAT_TYPE = delta,\n    DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec'\n);\n\n\n\n\ndrop external table bronze.delta_file_check\n\nCREATE EXTERNAL TABLE bronze.delta_file_check\n    (\n\nVendorID int,\nlpep_pickup_datetime datetime2(7),\nlpep_dropoff_datetime datetime2(7),\nstore_and_fwd_flag varchar(8000),\nRatecodeID int,\nPULocationID int,\nDOLocationID int,\npassenger_count int,\ntrip_distance float,\nfare_amount float,\nextra float,\nmta_tax float,\ntip_amount float,\ntolls_amount float,\nehail_fee int,\nimprovement_surcharge float,\ntotal_amount float,\npayment_type int,\ntrip_type int,\ncongestion_surcharge float)  \nWITH (\n    LOCATION = 'raw/trip_data_green_delta',\n    DATA_SOURCE = nyc_taxi_src,\n    FILE_FORMAT = delta_file_format\n);\n\nselect * from  tushar_db.bronze.delta_file_check\n\n-- Creating view on csv file\ndrop view if exists bronze.view_calender_csv \n\ncreate view  bronze.view_calender_csv\nAS\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/calendar.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n\nselect * from bronze.view_calender_csv\n\n\n-- Creating view from json file \n\n\n/* partition pruning - when we are using external table for particular month and\n year in delta table the external table will read all the data and then it will load data which is not efficien .\n  to make it efficient use view with operrowset function in synapse sql \n*/\n\ncreate view view_trip_green_csv\nAS\nSELECT\n    TOP 100 *,\n    result.filepath(1) as file_path_year,\n    result.filepath(2) as file_path_month\n    -- count(1) as count_name \n\nFROM\n    OPENROWSET(\n        BULK ('https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/year=*/month=*/*.csv'),\n        FORMAT = 'CSV',\n        HEADER_ROW = TRUE,\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n    where result.filepath(1)  =  ('2020') \n    and result.filepath(2) in  ('06','07','08') \n    -- result.filename() = ('green_tripdata_2020-01' , 'green_tripdata_2020-02')\n    -- group by result.filename() , result.filepath() ,result.filepath(1) ,result.filepath(2) \n    -- order by result.filename() \n\n\nselect * from view_trip_green_csv",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "tushar_db",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT *\n/* --> place the keys that you see in JSON documents in the WITH clause:\n       , JSON_VALUE (jsonContent, '$.key1') AS header1\n       , JSON_VALUE (jsonContent, '$.key2') AS header2\n*/\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/rate_code.json',\n        FORMAT = 'CSV',\n        FIELDQUOTE = '0x0b',\n        FIELDTERMINATOR ='0x0b',\n        ROWTERMINATOR = '0x0b'\n    )\n        WITH (\n        jsonContent varchar(MAX)\n    ) AS rate_code\n    cross apply openjson(jsonContent)\n    with\n    (\n        rate_code_id TINYINT, \n        rate_code varchar(50) \n    );\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 2')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\n    RESULT.FILENAME() AS FILENAME,\n    RESULT.*\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/year=2020/month=01/green_tripdata_2020-01.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 3')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 4')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "-- CETAS - Create external table as select statement this will create an external table as well as parquet file in container \nuse tushar_db\nGO\n\ncreate external table silver.nyc_taxi_Data_1\n with (\n    data_source =  nyc_taxi_src,\n    location = 'Silver/taxi_zone_data_1',\n    file_format = parquet_file_format\n    )\n    as \n    select * from bronze.taxi_zone;\n\n\nselect * from tushar_db.silver.nyc_taxi_Data\n\n\n--\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "tushar_db",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/automatic_payment_types')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT TOP 100\n    jsonContent\n/* --> place the keys that you see in JSON documents in the WITH clause:\n       , JSON_VALUE (jsonContent, '$.key1') AS header1\n       , JSON_VALUE (jsonContent, '$.key2') AS header2\n*/\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type.json',\n        FORMAT = 'CSV',\n        FIELDQUOTE = '0x0b',\n        FIELDTERMINATOR ='0x0b',\n        ROWTERMINATOR = '0x0b'\n    )\n    WITH (\n        jsonContent varchar(MAX)\n    ) AS [result]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/calender_csv')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/calendar.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/delta_files')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_delta/year=2020/month=*/',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n\n\nSELECT table_name FROM information_schema.tables WHERE table_schema = 'dbo';\n\n\nSELECT name FROM sys.tables\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "tushar_db",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/file_metadata_function')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "--  GET DATA FROM PARTICULAR FOLDERS AMONG ALL FOLDERS\nSELECT\n    -- TOP 100 *,\n    result.filename() as file_name,\n    result.filepath() as file_path,\n    result.filepath(1) as file_path_year,\n    result.filepath(2) as file_path_month\n    -- count(1) as count_name \n\nFROM\n    OPENROWSET(\n        BULK ('https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/year=*/month=*/*.csv'),\n        FORMAT = 'CSV',\n        HEADER_ROW = TRUE,\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n    where result.filepath(1)  =  ('2020') \n    and result.filepath(2) in  ('06','07','08') \n    -- result.filename() = ('green_tripdata_2020-01' , 'green_tripdata_2020-02')\n    -- group by result.filename() , result.filepath() ,result.filepath(1) ,result.filepath(2) \n    order by result.filename() \n\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/joining_DATASET')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- loading one monthe parquet data \nSELECT\n    *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=2020/month=01/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n    WHERE PULocationID is null\n\n\n\n\n-- joining two different dataset - join by openrowset() only \nSELECT\n    *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=2020/month=01/*.parquet',\n        FORMAT = 'PARQUET'\n    ) AS result_1\n    join \n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/taxi_zone.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0',\n        HEADER_ROW = True,\n        FIELDTERMINATOR = ',',\n        rowterminator = '\\n') as result_2\n        on result_1.PULocationID = result_2.location_id",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/manual_payment_types')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- {\"payment_type\":1,\"payment_type_desc\":\"Credit card\"} \nexec sp_describe_first_result_set N'\nSelect cast(json_value(jsonDoc, ''$.payment_type'') as SMALLINT) payment_type,\n    cast(json_value(jsonDoc, ''$.payment_type_desc'')as varchar(50)) payment_type_desc\n\n    from openrowset(\n        bulk ''https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type.json'',\n        format = ''csv'',\n        PARSER_VERSION = ''1.0'',\n        FIELDTERMINATOR = ''0x0b'',\n        FIELDQUOTE = ''0x0b'',\n        ROWTERMINATOR = ''0x0a''\n\n    )\n    with \n    (\n        jsonDoc nvarchar(max) \n    )as payment_type'\n\n\n    -- {\"payment_type\":1,\"payment_type_desc\":\"Credit card\"} \n\nSelect *\n    from openrowset(\n        bulk 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type.json',\n        format = 'csv',\n        PARSER_VERSION = '1.0',\n        FIELDTERMINATOR = '0x0b',\n        FIELDQUOTE = '0x0b',\n        ROWTERMINATOR = '0x0a'\n\n    )\n    with \n    (\n        jsonDoc nvarchar(max) \n    )as payment_type\n    cross apply openjson(jsonDoc)\n    with (\n        payment_type SMALLINT,\n        payment_type_desc varchar(50)\n    );\n\n\nSelect *\n    from openrowset(\n        bulk 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type.json',\n        format = 'csv',\n        PARSER_VERSION = '1.0',\n        FIELDTERMINATOR = '0x0b',\n        FIELDQUOTE = '0x0b',\n        ROWTERMINATOR = '0x0a'\n\n    )\n    with \n    (\n        jsonDoc nvarchar(max) \n    )as payment_type\n    cross apply openjson(jsonDoc)\n    with (\n        payment_type SMALLINT,\n        describe varchar(50) '$.payment_type_desc'\n    );\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/parquet_file')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=2020/month=02/part-00000-tid-8881285996391074070-398bd5a0-cbe7-465d-98ad-2ec56c37447e-111-1-c000.snappy.parquet',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n\n\n-- the  code is pointing to a folder recursively\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/year=*/month=*/',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n\n-- selecting every thing inside the folder recursively y\n\n-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_parquet/**',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/payment_type_array')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- {\"payment_type\":1,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Credit card\"}]}\n-- {\"payment_type\":2,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Cash\"}]}\n-- {\"payment_type\":3,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"No charge\"}]}\n-- {\"payment_type\":4,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Dispute\"}]}\n-- {\"payment_type\":5,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Unknown\"}, {\"sub_type\":2, \"value\":\"Unavailable\"}]}\n-- {\"payment_type\":6,\"payment_type_desc\":[{\"sub_type\":1, \"value\":\"Voided trip\"}]}\n\nSelect cast(json_value(jsonDoc, '$.payment_type') as SMALLINT) payment_type,\n    cast(json_value(jsonDoc, '$.payment_type_desc[0].sub_type')as varchar(50)) sub_type,\n    cast(json_value(jsonDoc, '$.payment_type_desc[0].value')as varchar(50)) value,\n    cast(json_value(jsonDoc, '$.payment_type_desc[1].value')as varchar(50)) value_1\n\n    from openrowset(\n        bulk 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type_array.json',\n        format = 'csv',\n        PARSER_VERSION = '1.0',\n        FIELDTERMINATOR = '0x0b',\n        FIELDQUOTE = '0x0b',\n        ROWTERMINATOR = '0x0a'\n\n    )\n    with \n    (\n        jsonDoc nvarchar(max) \n    )as payment_type\n\n\n\n\n\n\n\n\n\n\nselect * \nfrom OPENROWSET (\n    bulk  'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type_array.json',\n    format = 'csv',\n    PARSER_VERSION = '1.0',\n    FIELD_TERMINATOR = '0x0b',\n    FIELDQUOTE = '0x0b',\n    ROWTERMINATOR  = '0x0a'\n)\nwith\n(\n    jsonDoc nvarchar(MAX)\n)as payment_jso\ncross apply OPENJSON(jsonDoc)\nwith\n(\n    payment_type SMALLINT,\n    payment_type_desc nvarchar(max) as json \n);\n\n\n\nSELECT *\nFROM OPENROWSET (\n    BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/payment_type_array.json',\n    FORMAT = 'CSV',\n    PARSER_VERSION = '1.0',\n    FIELDTERMINATOR = '0x0b',\n    FIELDQUOTE = '0x0b',\n    ROWTERMINATOR = '0x0a'\n)\nWITH (\n    JsonDoc NVARCHAR(MAX)\n) AS Payment_Jso\nCROSS APPLY OPENJSON(JsonDoc)\nWITH (\n    payment_type SMALLINT,\n    payment_type_desc nvarchar(max) as json \n)cross apply openjson(payment_type_desc)\nwith\n(\n    sub_type smallint,\n    value varchar(50) '$.value'\n);\n\n\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/quering delta table')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_delta/year=2020/month=01/part-00000-tid-6133789922049958496-2e489315-890a-4453-ae93-a104be9a6f06-106-1-c000.snappy.parquet',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/rate_code')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT rat_code,rat_code_id\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/rate_code.json',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '1.0',\n        FIELDQUOTE = '0x0b',\n        FIELDTERMINATOR ='0x0b',\n        ROWTERMINATOR = '0x0b'\n    )\n    WITH (\n        jsonContent varchar(MAX)\n    ) AS rate_code\n    cross apply openjson(jsonContent)\n    with\n    (\n        rat_code_id TINYINT, \n        rat_code varchar(50) \n    )\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/trip_data_green_csv')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "select_queries"
+				},
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/**',\n        FORMAT = 'CSV',\n        HEADER_ROW = TRUE,\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n\n\n\n--  GET DATA FROM PARTICULAR FOLDERS AMONG ALL FOLDERS\n\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK ('https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/year=2020/month=01/*.csv',\n        'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/year=2020/month=01/*.csv'),\n        FORMAT = 'CSV',\n        HEADER_ROW = TRUE,\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n\n\n-- FILE META DATA FUNCTIONS\n\n-- This is auto-generated code\nSELECT \n    FOLDER_OUTPUT.FILENAME() AS FILE_NAME,\n    FOLDER_OUTPUT.*\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/trip_data_green_csv/**',\n        FORMAT = 'CSV',\n        HEADER_ROW = TRUE,\n        PARSER_VERSION = '2.0'\n    ) AS FOLDER_OUTPUT\n\n\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 5')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/calendar.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		}
+	]
 }
