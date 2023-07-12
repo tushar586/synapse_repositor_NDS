@@ -1,0 +1,16 @@
+{
+	"name": "ADLS_linked_service_by_a",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://storagesynapset.dfs.core.windows.net/",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIlNZTkFQU0VAMDU1NDU1NDctRTg2OC00MUNFLUJEN0YtOEU3RTFBMTdFNTBDX2YxM2YwMzhiLWI1NmMtNDNkNy04M2FiLWQxMmM5NjA4MDNmMSINCn0="
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

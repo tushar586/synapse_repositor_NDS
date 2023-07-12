@@ -1,0 +1,20 @@
+{
+	"name": "rate_code",
+	"properties": {
+		"folder": {
+			"name": "select_queries"
+		},
+		"content": {
+			"query": "-- This is auto-generated code\nSELECT rat_code,rat_code_id\nFROM\n    OPENROWSET(\n        BULK 'https://storagesynapset.dfs.core.windows.net/containersynapset/raw/rate_code.json',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '1.0',\n        FIELDQUOTE = '0x0b',\n        FIELDTERMINATOR ='0x0b',\n        ROWTERMINATOR = '0x0b'\n    )\n    WITH (\n        jsonContent varchar(MAX)\n    ) AS rate_code\n    cross apply openjson(jsonContent)\n    with\n    (\n        rat_code_id TINYINT, \n        rat_code varchar(50) \n    )\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

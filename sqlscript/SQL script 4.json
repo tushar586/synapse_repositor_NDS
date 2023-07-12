@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 4",
+	"properties": {
+		"content": {
+			"query": "-- CETAS - Create external table as select statement this will create an external table as well as parquet file in container \nuse tushar_db\nGO\n\ncreate external table silver.nyc_taxi_Data_1\n with (\n    data_source =  nyc_taxi_src,\n    location = 'Silver/taxi_zone_data_1',\n    file_format = parquet_file_format\n    )\n    as \n    select * from bronze.taxi_zone;\n\n\nselect * from tushar_db.silver.nyc_taxi_Data\n\n\n--\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "tushar_db",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
