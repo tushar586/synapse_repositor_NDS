@@ -476,7 +476,7 @@
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"content": {
-					"query": "CREATE PROCEDURE GetEmployeeCount\nAS\nBEGIN\n    SELECT COUNT(*) AS TotalEmployees FROM taxi_zone;\nEND;\n\n-- to get the list of tables present in database.\nSELECT name\nFROM sys.tables\n\n\n--  to check views in synapse sql \nSELECT name\nFROM sys.views;\n",
+					"query": "CREATE PROCEDURE GetEmployeeCount\nAS\nBEGIN\n    SELECT COUNT(*) AS TotalEmployees FROM taxi_zone;\nEND;\n\n-- to get the list of tables present in database.\nSELECT name\nFROM sys.tables\n\n\n--  to check views in synapse sql \nSELECT name\nFROM sys.views;\n\nexec GetEmployeeCount\n",
 					"metadata": {
 						"language": "sql"
 					},
